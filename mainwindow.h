@@ -46,7 +46,7 @@ private:
     ImageViewer *imgView;
     QTimer timerImgLoad;
 
-    QStringList classList;
+    QSet<int> objClassSet;
 
     // QWidget interface
 protected:

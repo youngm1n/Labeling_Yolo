@@ -95,7 +95,7 @@ void MainWindow::loadImageFolder(QDir dirImage)
     btnRemoveImg.clear();
     imgFileInfos.clear();
     labelFileInfos.clear();
-    classList.clear();
+    objClassSet.clear();
     ui->progressBarImgLoad->setValue(0);
 
     // Set image folder
@@ -132,6 +132,7 @@ void MainWindow::loadImageFolder(QDir dirImage)
     for (int i = 0; i < imgFileInfos.count(); i++) {
         auto btn = new QPushButton("Remove");
         ui->tableWidgetImage->setCellWidget(i, TABLE_IMG_COL_REMOVE, btn);
+        btn->setProperty("TABLE_ROW", i);
         connect(btn, &QPushButton::pressed, this, &MainWindow::pressedImageRemoveButton);
         btnRemoveImg.push_back(btn);
     }
@@ -173,6 +174,9 @@ void MainWindow::timoutLoadImageFile()
         timerImgLoad.stop();
         ui->progressBarImgLoad->hide();
 
+        //
+        qDebug() << objClassSet.count();
+
         // Set resize mode for image table column
         ui->tableWidgetImage->horizontalHeader()->setSectionResizeMode(TABLE_IMG_COL_NAME, QHeaderView::Stretch);
         ui->tableWidgetImage->horizontalHeader()->setSectionResizeMode(TABLE_IMG_COL_COUNT, QHeaderView::ResizeToContents);
@@ -203,8 +207,8 @@ void MainWindow::loadObjectInfo(const QFileInfo &labelFileInfo, OBJECTS &objs)
             objs.push_back(new object(classNo, x, y, w, h));
 
             // Insert classNo into class list, if it is new
-            if (classNo > classList.count() - 1) {
-                classList.push_back(QString("class_%1").arg(classNo));
+            if (objClassSet.find(classNo) == objClassSet.end()) {
+                objClassSet.insert(classNo);
             }
         }
         labelFile.close();
@@ -219,7 +223,7 @@ void MainWindow::initObjectTable(OBJECTS &)
 // Remove selected image
 void MainWindow::pressedImageRemoveButton()
 {
-
+    auto row = sender()->property("TABLE_ROW").toInt();
 }
 
 // Click image from image table
