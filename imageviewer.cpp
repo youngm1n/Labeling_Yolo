@@ -11,18 +11,43 @@ enum ENUM_SIZE_MOD  { RESIZER_TOP_LEFT, RESIZER_TOP_RIGHT, RESIZER_BOTTOM_LEFT, 
 ImageViewer::ImageViewer(QWidget *parent)
     : QWidget{parent}
 {
+    qApp->installEventFilter(this);
+
     zoomRatio = 1;
     dragImg = dragResizer = newObj = false;
 
     selObjNo = selResizerNo = -1;
 
-    qApp->installEventFilter(this);
+    // Object's class selctor, when make a new object
+    newObjClassSelctor = new QComboBox(this);
+    newObjClassSelctor->hide();
+    newObjClassSelctor->setFocusPolicy(Qt::StrongFocus);
+    newObjClassSelctor->setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnBottomHint);
+    connect(newObjClassSelctor, &QComboBox::activated, this, &ImageViewer::createNewObject);
 }
 
-void ImageViewer::setObjectClassInfomation(QStringList list, CLASS_COLORS colors)
+// Set class editor
+void ImageViewer::setClassEditor(DialogObjectClassEditor *newObjClassEditor)
+{
+    objClassEditor = newObjClassEditor;
+}
+
+// Update class lsit and colors list from editor
+void ImageViewer::updateClassInformation(QStringList list, CLASS_COLORS colors)
 {
     classList = list;
     classColors = colors;
+
+    newObjClassSelctor->clear();
+    auto sizeColorIcon = newObjClassSelctor->style()->pixelMetric(QStyle::PM_SmallIconSize);
+    for (int i = 0; i < classList.count(); i++) {
+        newObjClassSelctor->addItem(classList.at(i));
+
+        QPixmap pixmap(sizeColorIcon, sizeColorIcon);
+        pixmap.fill(classColors.at(i));
+        newObjClassSelctor->setItemData(i, pixmap, Qt::DecorationRole);
+    }
+    newObjClassSelctor->addItem("Add new class...");
 }
 
 void ImageViewer::loadImage(QString imgPath, OBJECTS &objs)
@@ -123,30 +148,46 @@ void ImageViewer::moveDrawRectCenter(QPointF center)
     }
 }
 
+void ImageViewer::createNewObject(int classNo)
+{
+    // Add new class
+    if (classNo == newObjClassSelctor->count() - 1) {
+        objClassEditor->exec();
+    }
+    else {
+        newObj = false;
+        newObjClassSelctor->hide();
+    }
+}
 
 bool ImageViewer::eventFilter(QObject *watched, QEvent *event)
 {
     // Get mouse move position
     if (watched == this && event->type() == QEvent::MouseMove) {
         bool cursonOn = false;
-        auto tempMousePos = static_cast<QMouseEvent *>(event)->position();
+        auto mousePos = static_cast<QMouseEvent *>(event)->position();
 
+        //
+        if (newObj) {
+            rectNewObj = QRectF(posNewObj, mousePos);
+            update();
+        }
         // Drag screen
-        if (dragImg) {
-            dragDelta = tempMousePos - dragStart;
+        else if (dragImg) {
+            dragDelta = mousePos - dragStart;
             moveDrawRectCenter(rectDraw.center() + dragDelta);
             update();
 
-            dragStart = tempMousePos;
+            dragStart = mousePos;
         }
         // Drag object's resizer
         else if (dragResizer) {
             auto tempScrRect = *rectScrObjs.at(selObjNo);
             switch (selResizerNo) {
-            case RESIZER_TOP_LEFT:      tempScrRect.setTopLeft(tempMousePos);        break;
-            case RESIZER_TOP_RIGHT:     tempScrRect.setTopRight(tempMousePos);       break;
-            case RESIZER_BOTTOM_LEFT:   tempScrRect.setBottomLeft(tempMousePos);     break;
-            default:                    tempScrRect.setBottomRight(tempMousePos);    break;
+            case RESIZER_TOP_LEFT:      tempScrRect.setTopLeft(mousePos);        break;
+            case RESIZER_TOP_RIGHT:     tempScrRect.setTopRight(mousePos);       break;
+            case RESIZER_BOTTOM_LEFT:   tempScrRect.setBottomLeft(mousePos);     break;
+            default:                    tempScrRect.setBottomRight(mousePos);    break;
             }
             // Update resized screen obj to yolo style rect
             float x = (tempScrRect.left() - rectDraw.left()) / rectDraw.width();
@@ -154,15 +195,13 @@ bool ImageViewer::eventFilter(QObject *watched, QEvent *event)
             float w = tempScrRect.width() / rectDraw.width();
             float h = tempScrRect.height() / rectDraw.height();
             rectYoloObjs.at(selObjNo)->setRect(x, y, w, h);
-            rectYoloObjs.at(selObjNo)->setSize(QSizeF(w, h));
-
             cursonOn = true;
         }
         else {
             // determine that any resizer is selected.
             for (int objNo = 0; objNo < rectResizers.count(); objNo++) {
                 for (int modNo = 0; modNo < RESIZER_TOTAL; modNo++) {
-                    if (rectResizers.at(objNo).at(modNo)->marginsAdded(QMarginsF(5, 5, 5, 5)).contains(tempMousePos)) {
+                    if (rectResizers.at(objNo).at(modNo)->marginsAdded(QMarginsF(5, 5, 5, 5)).contains(mousePos)) {
                         selObjNo = objNo;
                         selResizerNo = modNo;
 
@@ -188,7 +227,7 @@ bool ImageViewer::eventFilter(QObject *watched, QEvent *event)
 
         // Just move mouse
         if (!dragImg) {
-            mousePos = tempMousePos;
+            currentMousePos = mousePos;
         }
 
         // Curson is not on resizer
@@ -248,15 +287,18 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event)
     }
 
     if (newObj) {
+        newObjClassSelctor->move(event->position().x(), event->position().y());
+        newObjClassSelctor->show();
     }
 
-    dragImg = dragResizer = newObj = false;
+    dragImg = dragResizer = false;
 
     update();
 }
 
 void ImageViewer::mouseDoubleClickEvent(QMouseEvent *event)
 {
+    // Start creating new object
     if (event->button() == Qt::LeftButton && !img.isNull()) {
         newObj = true;
         posNewObj = event->position();
@@ -306,8 +348,8 @@ void ImageViewer::paintEvent(QPaintEvent *event)
     // Draw mouse pos
     if (!dragImg) {
         p.setPen(Qt::white);
-        p.drawLine(mousePos.x(), 0, mousePos.x(), height());
-        p.drawLine(0, mousePos.y(), width(), mousePos.y());
+        p.drawLine(currentMousePos.x(), 0, currentMousePos.x(), height());
+        p.drawLine(0, currentMousePos.y(), width(), currentMousePos.y());
     }
 
     // Draw objects
@@ -329,6 +371,13 @@ void ImageViewer::paintEvent(QPaintEvent *event)
             auto mod = rectResizers.at(objNo).at(modNo);
             p.drawEllipse((objNo == selObjNo && modNo == selResizerNo) ? mod->marginsAdded(QMarginsF(2, 2, 2, 2)) : *mod);
         }
+    }
+
+    // Draw new Object
+    if (newObj) {
+        p.setBrush(Qt::transparent);
+        p.setPen(QPen(Qt::red, 2));
+        p.drawRect(rectNewObj);
     }
 
     p.end();

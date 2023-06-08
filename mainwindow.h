@@ -33,6 +33,7 @@ private slots:
     void pressedImageTableItem(QTableWidgetItem *item);
     void pressedLabelTableItem(QTableWidgetItem *item);
     void changedObjectClass(int newClassNo);
+    void updateClassInformation(QStringList classList, CLASS_COLORS classColors);
 
 private:
     void loadObjectInfo(const QFileInfo &labelFileInfo, OBJECTS &objs);
@@ -53,6 +54,8 @@ private:
     QTimer timerImgLoad;
 
     DialogObjectClassEditor *objClassEditor;
+    QStringList objClassList;
+    CLASS_COLORS objClassColors;
 
     // QWidget interface
 protected:

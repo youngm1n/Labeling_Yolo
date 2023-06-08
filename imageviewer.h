@@ -12,14 +12,21 @@ class ImageViewer : public QWidget
 public:
     explicit ImageViewer(QWidget *parent = nullptr);
     
-    void setObjectClassInfomation(QStringList classList, CLASS_COLORS classColorList);
     void loadImage(QString imgPath, OBJECTS &objs);
     void updateObjects(OBJECTS &objs);
+
+    void setClassEditor(DialogObjectClassEditor *newClassEditor);
+
+public slots:
+    void updateClassInformation(QStringList classList, CLASS_COLORS classColors);
 
 private:
     QRectF *getScreenRectFromYoloRect(QRectF rectYolo);
     void updateObjectScreenRect();
     void moveDrawRectCenter(QPointF center);
+
+private slots:
+    void createNewObject(int classNo);
 
 signals:
 
@@ -32,12 +39,13 @@ private:
     QList<QVector<QRectF *>> rectResizers;
 
     // Object's class params
+    DialogObjectClassEditor *objClassEditor;
     QStringList classList;
     CLASS_COLORS classColors;
     QList<int> objClass;
 
     // Draw tools
-    QPointF mousePos;
+    QPointF currentMousePos;
     QRectF rectOriginalDraw;
     QRectF rectDraw;
     double zoomRatio;
@@ -50,6 +58,7 @@ private:
     bool newObj;
     QPointF posNewObj;
     QRectF rectNewObj;
+    QComboBox *newObjClassSelctor;
 
     // Number of selected object and resizer
     int selObjNo;

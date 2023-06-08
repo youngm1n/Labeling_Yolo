@@ -21,9 +21,43 @@ DialogObjectClassEditor::~DialogObjectClassEditor()
     delete ui;
 }
 
+int DialogObjectClassEditor::exec()
+{
+    ui->tableWidget->clearContents();
+
+    auto countClass = objClassList.isEmpty() ? objClassSet.count() : objClassList.count();
+
+    // Init table
+    disconnect(ui->tableWidget, &QTableWidget::itemChanged, this, &DialogObjectClassEditor::objectClassNameChanged);
+    ui->tableWidget->setColumnCount(TABLE_COL_TOTAL);
+    ui->tableWidget->setHorizontalHeaderLabels(QStringList() << "No" << "Color" << "Class name");
+    ui->tableWidget->setRowCount(countClass);
+    for (int row = 0; row < countClass; row++) {
+        ui->tableWidget->setItem(row, TABLE_COL_NO, new QTableWidgetItem(QString().setNum(row)));
+        ui->tableWidget->item(row, TABLE_COL_NO)->setTextAlignment(Qt::AlignCenter);
+
+        if (objClassList.isEmpty()) {
+            ui->tableWidget->setCellWidget(row, TABLE_COL_COLOR, getColorButton(row));
+            ui->tableWidget->setItem(row, TABLE_COL_CLASS, new QTableWidgetItem(QString("class_%1").arg(row)));
+        }
+        else {
+            ui->tableWidget->setCellWidget(row, TABLE_COL_COLOR, getColorButton(row, objClassColors.at(row)));
+            ui->tableWidget->setItem(row, TABLE_COL_CLASS, new QTableWidgetItem(objClassList.at(row)));
+        }
+    }
+    ui->tableWidget->insertRow(countClass);
+    ui->tableWidget->setItem(countClass, TABLE_COL_NO, new QTableWidgetItem(" "));
+    ui->tableWidget->setItem(countClass, TABLE_COL_CLASS, new QTableWidgetItem("Add new class..."));
+    connect(ui->tableWidget, &QTableWidget::itemChanged, this, &DialogObjectClassEditor::objectClassNameChanged);
+
+    return QDialog::exec();
+}
+
 void DialogObjectClassEditor::clear()
 {
     objClassSet.clear();
+    objClassList.clear();
+    objClassColors.clear();
     disconnect(ui->tableWidget, &QTableWidget::itemChanged, this, &DialogObjectClassEditor::objectClassNameChanged);
     ui->tableWidget->clearContents();
 }
@@ -35,57 +69,27 @@ void DialogObjectClassEditor::insertNewClassNo(const int &no)
     }
 }
 
-void DialogObjectClassEditor::getClassInformation(QStringList &classList, CLASS_COLORS &classColors)
-{
-    if (ui->tableWidget->rowCount() > 1) {
-        for (int row = 0; row < ui->tableWidget->rowCount() - 1; row++) {
-            classList.push_back(ui->tableWidget->item(row, TABLE_COL_CLASS)->text());
-            classColors.push_back(*(QColor *)(ui->tableWidget->cellWidget(row, TABLE_COL_COLOR)->property("COLOR").toLongLong()));
-        }
-    }
-}
-
-const QStringList DialogObjectClassEditor::getClassList()
-{
-    QStringList list;
-
-    if (ui->tableWidget->rowCount() > 1) {
-        for (int row = 0; row < ui->tableWidget->rowCount() - 1; row++) {
-            list.push_back(ui->tableWidget->item(row, TABLE_COL_CLASS)->text());
-        }
-    }
-
-    return list;
-}
-
-const CLASS_COLORS DialogObjectClassEditor::getClassColors()
-{
-    CLASS_COLORS colors;
-
-    if (ui->tableWidget->rowCount() > 1) {
-        for (int row = 0; row < ui->tableWidget->rowCount() - 1; row++) {
-            colors.push_back(*(QColor *)(ui->tableWidget->cellWidget(row, TABLE_COL_COLOR)->property("COLOR").toLongLong()));
-        }
-    }
-
-    return colors;
-}
-
 QPushButton *DialogObjectClassEditor::getColorButton(int row)
 {
-    auto btnColor = new QPushButton("");
-    QColor *color;
+    QColor color;
     switch (row) {
-    case 0:     color = new QColor(Qt::green);  break;
-    case 1:     color = new QColor(Qt::blue);   break;
-    case 2:     color = new QColor(Qt::cyan);   break;
-    case 3:     color = new QColor(Qt::yellow); break;
-    default:    color = new QColor(QRandomGenerator::global()->bounded(255), QRandomGenerator::global()->bounded(255), QRandomGenerator::global()->bounded(255));
+    case 0:     color = QColor(Qt::green);  break;
+    case 1:     color = QColor(Qt::blue);   break;
+    case 2:     color = QColor(Qt::cyan);   break;
+    case 3:     color = QColor(Qt::yellow); break;
+    default:    color = QColor(QRandomGenerator::global()->bounded(255), QRandomGenerator::global()->bounded(255), QRandomGenerator::global()->bounded(255));
     }
-    btnColor->setStyleSheet(QString("background-color: rgb(%1, %2, %3);").arg(color->red()).arg(color->green()).arg(color->blue()));
-    btnColor->setProperty("COLOR", (quint64)color);
 
-    auto dlgColor = new QColorDialog(*color);
+    return getColorButton(row, color);
+}
+
+QPushButton *DialogObjectClassEditor::getColorButton(int row, QColor color)
+{
+    auto btnColor = new QPushButton("");
+    btnColor->setStyleSheet(QString("background-color: rgb(%1, %2, %3);").arg(color.red()).arg(color.green()).arg(color.blue()));
+    btnColor->setProperty("COLOR", color);
+
+    auto dlgColor = new QColorDialog(color);
     dlgColor->setProperty("ROW", row);
     connect(btnColor, &QPushButton::clicked, dlgColor, &QColorDialog::show);
     connect(dlgColor, &QColorDialog::colorSelected, this, &DialogObjectClassEditor::classColorChanged);
@@ -123,29 +127,19 @@ void DialogObjectClassEditor::classColorChanged(const QColor &color)
     auto row = sender()->property("ROW").toInt();
     auto btnColor = reinterpret_cast<QPushButton *>(ui->tableWidget->cellWidget(row, TABLE_COL_COLOR));
     btnColor->setStyleSheet(QString("background-color: rgb(%1, %2, %3);").arg(color.red()).arg(color.green()).arg(color.blue()));
-
-    // Save new color into table
-    *reinterpret_cast<QColor *>(btnColor->property("COLOR").toULongLong()) = color;
 }
 
-int DialogObjectClassEditor::exec()
+void DialogObjectClassEditor::closeEvent(QCloseEvent *event)
 {
-    auto count = objClassSet.count();
+    Q_UNUSED(event);
 
-    // Init table
-    ui->tableWidget->setColumnCount(TABLE_COL_TOTAL);
-    ui->tableWidget->setHorizontalHeaderLabels(QStringList() << "No" << "Color" << "Class name");
-    ui->tableWidget->setRowCount(count);
-    for (int row = 0; row < count; row++) {
-        ui->tableWidget->setItem(row, TABLE_COL_NO, new QTableWidgetItem(QString().setNum(row)));
-        ui->tableWidget->item(row, TABLE_COL_NO)->setTextAlignment(Qt::AlignCenter);
-        ui->tableWidget->setCellWidget(row, TABLE_COL_COLOR, getColorButton(row));
-        ui->tableWidget->setItem(row, TABLE_COL_CLASS, new QTableWidgetItem(QString("class_%1").arg(row)));
+    objClassList.clear();
+    objClassColors.clear();
+    for (int row = 0; row < ui->tableWidget->rowCount() - 1; row++) {
+        objClassList.push_back(ui->tableWidget->item(row, TABLE_COL_CLASS)->text());
+        objClassColors.push_back(ui->tableWidget->cellWidget(row, TABLE_COL_COLOR)->property("COLOR").value<QColor>());
     }
-    ui->tableWidget->insertRow(count);
-    ui->tableWidget->setItem(count, TABLE_COL_NO, new QTableWidgetItem(" "));
-    ui->tableWidget->setItem(count, TABLE_COL_CLASS, new QTableWidgetItem("Add new class..."));
-    connect(ui->tableWidget, &QTableWidget::itemChanged, this, &DialogObjectClassEditor::objectClassNameChanged);
 
-    return QDialog::exec();
+    emit updateClassInformation(objClassList, objClassColors);
 }
+

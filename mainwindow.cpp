@@ -30,6 +30,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Class editor
     objClassEditor = new DialogObjectClassEditor(this);
+    imgEditor->setClassEditor(objClassEditor);
+    connect(objClassEditor, &DialogObjectClassEditor::updateClassInformation, this, &MainWindow::updateClassInformation);
+    connect(objClassEditor, &DialogObjectClassEditor::updateClassInformation, imgEditor, &ImageViewer::updateClassInformation);
 
     // Init the image table
     auto headerLabel = QStringList() << "Name" << "Object Count" << "-";
@@ -198,7 +201,6 @@ void MainWindow::timoutLoadImageFile()
 
         // Open object class editor
         objClassEditor->exec();
-        imgEditor->setObjectClassInfomation(objClassEditor->getClassList(), objClassEditor->getClassColors());
 
         // Show thumbnail
         showImageThumbnailInTable();
@@ -291,11 +293,6 @@ void MainWindow::pressedImageTableItem(QTableWidgetItem *item)
     loadObjectInfo(labelFileInfo, objs);
     initObjectTable(objs);
 
-    // Get all class information
-    QStringList objClassList;
-    CLASS_COLORS objClassColors;
-    objClassEditor->getClassInformation(objClassList, objClassColors);
-
     // Init label table
     auto labelRowCount = ui->tableWidgetLabel->rowCount();
     for (int row = 0; row < labelRowCount; row++) {
@@ -354,4 +351,10 @@ void MainWindow::pressedLabelTableItem(QTableWidgetItem *item)
 void MainWindow::changedObjectClass(int newClassNo)
 {
 
+}
+
+void MainWindow::updateClassInformation(QStringList list, CLASS_COLORS colors)
+{
+    objClassList = list;
+    objClassColors = colors;
 }
