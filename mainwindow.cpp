@@ -26,6 +26,9 @@ MainWindow::MainWindow(QWidget *parent)
     // Set image view widget
     imgView = ui->widgetImageViewer;
 
+    // Class editor
+    objClassEditor = new DialogObjectClassEditor(this);
+
     // Init the image table
     auto headerLabel = QStringList() << "Name" << "Object Count" << "-";
     ui->tableWidgetImage->setColumnCount(headerLabel.count());
@@ -34,6 +37,11 @@ MainWindow::MainWindow(QWidget *parent)
     ui->tableWidgetImage->setSelectionMode(QTableWidget::SingleSelection);
     ui->tableWidgetImage->setSelectionBehavior(QTableWidget::SelectRows);
     connect(ui->tableWidgetImage, &QTableWidget::itemPressed, this, &MainWindow::pressedImageTableItem);
+
+    auto defaultHeight = ui->tableWidgetImage->verticalHeader()->defaultSectionSize() * 2;
+    ui->tableWidgetImage->verticalHeader()->setDefaultSectionSize(defaultHeight);
+    ui->tableWidgetImage->verticalHeader()->setIconSize(QSize(defaultHeight, defaultHeight));
+
 
     // Init the object table
     headerLabel = QStringList() << "Object" << "X" << "Y" << "Width" << "Height" << "-";
@@ -95,7 +103,8 @@ void MainWindow::loadImageFolder(QDir dirImage)
     btnRemoveImg.clear();
     imgFileInfos.clear();
     labelFileInfos.clear();
-    objClassSet.clear();
+    objClassEditor->clear();
+    selectedImgRow = -1;
     ui->progressBarImgLoad->setValue(0);
 
     // Set image folder
@@ -159,7 +168,9 @@ void MainWindow::timoutLoadImageFile()
 
         // Set table items
         // 1st column: name
-        ui->tableWidgetImage->setItem(row, TABLE_IMG_COL_NAME, new QTableWidgetItem(baseName));
+        auto itemThumb = new QTableWidgetItem(baseName);
+        itemThumb->setData(Qt::DecorationRole, QPixmap(imgFileInfo.absoluteFilePath()).scaled(100, 100, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        ui->tableWidgetImage->setItem(row, TABLE_IMG_COL_NAME, itemThumb);
         // 2nd column: object count
         OBJECTS objs;
         loadObjectInfo(labelFileInfo, objs);
@@ -174,13 +185,18 @@ void MainWindow::timoutLoadImageFile()
         timerImgLoad.stop();
         ui->progressBarImgLoad->hide();
 
-        //
-        qDebug() << objClassSet.count();
+        // Open object class editor
+        objClassEditor->exec();
 
         // Set resize mode for image table column
         ui->tableWidgetImage->horizontalHeader()->setSectionResizeMode(TABLE_IMG_COL_NAME, QHeaderView::Stretch);
         ui->tableWidgetImage->horizontalHeader()->setSectionResizeMode(TABLE_IMG_COL_COUNT, QHeaderView::ResizeToContents);
         ui->tableWidgetImage->horizontalHeader()->setSectionResizeMode(TABLE_IMG_COL_REMOVE, QHeaderView::ResizeToContents);
+
+        // Select the first image
+        if (ui->tableWidgetImage->rowCount() > 0) {
+            pressedImageTableItem(ui->tableWidgetImage->item(0, 0));
+        }
     }
 
     // Increase table row
@@ -191,26 +207,30 @@ void MainWindow::timoutLoadImageFile()
 void MainWindow::loadObjectInfo(const QFileInfo &labelFileInfo, OBJECTS &objs)
 {
     QFile labelFile(labelFileInfo.absoluteFilePath());
-    if (labelFile.open(QIODevice::ReadOnly)) {
-        QTextStream stream(&labelFile);
-        QString line;
-        QStringList data;
-        int classNo = 0;
-        float x, y, w, h;
-        while (stream.readLineInto(&line)) {
-            data = line.split(" ");
-            classNo = data.first().toInt();
-            x = data.at(1).toFloat();
-            y = data.at(2).toFloat();
-            w = data.at(3).toFloat();
-            h = data.at(4).toFloat();
-            objs.push_back(new object(classNo, x, y, w, h));
+    if (labelFile.exists()) {
+        if (labelFile.open(QIODevice::ReadOnly)) {
+            QTextStream stream(&labelFile);
+            QString line;
+            QStringList data;
+            int classNo = 0;
+            float x, y, w, h;
+            while (stream.readLineInto(&line)) {
+                data = line.split(" ");
+                classNo = data.first().toInt();
+                x = data.at(1).toFloat();
+                y = data.at(2).toFloat();
+                w = data.at(3).toFloat();
+                h = data.at(4).toFloat();
+                objs.push_back(new object(classNo, x, y, w, h));
 
-            // Insert classNo into class list, if it is new
-            if (objClassSet.find(classNo) == objClassSet.end()) {
-                objClassSet.insert(classNo);
+                // Insert classNo into class list, if it is new
+                objClassEditor->insertNewClassNo(classNo);
             }
+            labelFile.close();
         }
+    }
+    else {
+        labelFile.open(QIODevice::WriteOnly);
         labelFile.close();
     }
 }
@@ -226,22 +246,83 @@ void MainWindow::pressedImageRemoveButton()
     auto row = sender()->property("TABLE_ROW").toInt();
 }
 
+// Remove selected object
+void MainWindow::pressedObjectRemoveButton()
+{
+
+}
+
 // Click image from image table
 void MainWindow::pressedImageTableItem(QTableWidgetItem *item)
 {
-    auto row = item->row();
+    selectedImgRow = item->row();
 
-    auto imgFileInfo = imgFileInfos.at(row);
-    auto labelFileInfo = labelFileInfos.at(row);
+    auto imgFileInfo = imgFileInfos.at(selectedImgRow);
+    auto labelFileInfo = labelFileInfos.at(selectedImgRow);
 
     // Load object infomation from label file and init object table with this
     OBJECTS objs;
     loadObjectInfo(labelFileInfo, objs);
     initObjectTable(objs);
+
+    // Get all class information
+    QStringList objClassList;
+    CLASS_COLORS objClassColors;
+    objClassEditor->getClassInformation(objClassList, objClassColors);
+
+    // Init label table
+    auto labelRowCount = ui->tableWidgetLabel->rowCount();
+    for (int row = 0; row < labelRowCount; row++) {
+        ui->tableWidgetLabel->removeRow(0);
+    }
+    ui->tableWidgetLabel->setRowCount(objs.count());
+    // Load each object and put into label table
+    auto labelRow = 0;
+    foreach (auto obj, objs) {
+        // 1st column: object's class (combobox)
+        auto combo = new QComboBox;
+        auto sizeComboIcon = combo->style()->pixelMetric(QStyle::PM_SmallIconSize);
+        for (int i = 0; i < objClassList.count(); i++) {
+            combo->addItem(objClassList.at(i));
+
+            // Set color
+            QPixmap pix(sizeComboIcon, sizeComboIcon);
+            pix.fill(objClassColors.at(i));
+            combo->setItemData(i, pix, Qt::DecorationRole);
+        }
+        combo->addItem("Add new class...");
+        combo->setCurrentIndex(obj->getClassNo());
+        combo->setFocusPolicy(Qt::NoFocus);
+        connect(combo, &QComboBox::currentIndexChanged, this, &MainWindow::changedObjectClass);
+        ui->tableWidgetLabel->setCellWidget(labelRow, TABLE_OBJ_COL_CLASS, combo);
+
+        // 2nd ~ 5th column (x, y, w, h)
+        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_X, new QTableWidgetItem(QString().setNum(obj->getPosX())));
+        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_Y, new QTableWidgetItem(QString().setNum(obj->getPosY())));
+        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_WIDTH, new QTableWidgetItem(QString().setNum(obj->getWidth())));
+        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_HEIGHT, new QTableWidgetItem(QString().setNum(obj->getHeight())));
+        // Set text alignment
+        for (int col = TABLE_OBJ_COL_X; col <= TABLE_OBJ_COL_HEIGHT; col++) {
+            ui->tableWidgetLabel->item(labelRow, col)->setTextAlignment(Qt::AlignCenter);
+        }
+
+        // 6th column: remove
+        auto btnRemove = new QPushButton("Remove");
+        btnRemove->setProperty("TABLE_ROW", labelRow);
+        connect(btnRemove, &QPushButton::pressed, this, &MainWindow::pressedObjectRemoveButton);
+        ui->tableWidgetLabel->setCellWidget(labelRow, TABLE_OBJ_COL_REMOVE, btnRemove);
+
+        labelRow++;
+    }
 }
 
 // Click object from label table
 void MainWindow::pressedLabelTableItem(QTableWidgetItem *item)
 {
     auto row = item->row();
+}
+
+void MainWindow::changedObjectClass(int newClassNo)
+{
+
 }

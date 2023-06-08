@@ -11,6 +11,7 @@
 
 #include "imageviewer.h"
 #include "object.h"
+#include "dialogobjectclasseditor.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -28,8 +29,10 @@ private slots:
     void loadImageFolder(QDir dirImage);
     void timoutLoadImageFile();
     void pressedImageRemoveButton();
+    void pressedObjectRemoveButton();
     void pressedImageTableItem(QTableWidgetItem *item);
     void pressedLabelTableItem(QTableWidgetItem *item);
+    void changedObjectClass(int newClassNo);
 
 private:
     void loadObjectInfo(const QFileInfo &labelFileInfo, OBJECTS &objs);
@@ -37,6 +40,8 @@ private:
 
 private:
     Ui::MainWindow *ui;
+
+    int selectedImgRow;
 
     QFileInfoList imgFileInfos;
     QFileInfoList labelFileInfos;
@@ -46,7 +51,7 @@ private:
     ImageViewer *imgView;
     QTimer timerImgLoad;
 
-    QSet<int> objClassSet;
+    DialogObjectClassEditor *objClassEditor;
 
     // QWidget interface
 protected:

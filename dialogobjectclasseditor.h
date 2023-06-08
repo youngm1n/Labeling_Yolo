@@ -4,6 +4,8 @@
 #include <QDialog>
 #include <QTableWidgetItem>
 
+typedef QList<QColor> CLASS_COLORS;
+
 namespace Ui {
 class DialogObjectClassEditor;
 }
@@ -16,7 +18,10 @@ public:
     explicit DialogObjectClassEditor(QWidget *parent = nullptr);
     ~DialogObjectClassEditor();
 
-    void initClassCount(int count);
+    void clear();
+
+    void insertNewClassNo(const int &no);
+    void getClassInformation(QStringList &classList, CLASS_COLORS &classColors);
 
 private:
     QPushButton *getColorButton(int row);
@@ -27,6 +32,11 @@ private slots:
 
 private:
     Ui::DialogObjectClassEditor *ui;
+    QSet<int> objClassSet;
+
+    // QDialog interface
+public slots:
+    int exec();
 };
 
 #endif // DIALOGOBJECTCLASSEDITOR_H
