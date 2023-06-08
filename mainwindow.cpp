@@ -4,6 +4,8 @@
 #include <QMimeData>
 #include <QDragEnterEvent>
 #include <QFileDialog>
+#include <QAbstractSlider>
+#include <QScrollBar>
 
 enum ENUM_TABLE_IMG_COL { TABLE_IMG_COL_NAME, TABLE_IMG_COL_COUNT, TABLE_IMG_COL_REMOVE, TABLE_IMG_COL_TOTAL };
 enum ENUM_TABLE_OBJ_COL { TABLE_OBJ_COL_CLASS,
@@ -41,7 +43,7 @@ MainWindow::MainWindow(QWidget *parent)
     auto defaultHeight = ui->tableWidgetImage->verticalHeader()->defaultSectionSize() * 2;
     ui->tableWidgetImage->verticalHeader()->setDefaultSectionSize(defaultHeight);
     ui->tableWidgetImage->verticalHeader()->setIconSize(QSize(defaultHeight, defaultHeight));
-
+    connect(ui->tableWidgetImage->verticalScrollBar(), &QScrollBar::valueChanged, this, [this](int) { showImageThumbnailInTable(); });
 
     // Init the object table
     headerLabel = QStringList() << "Object" << "X" << "Y" << "Width" << "Height" << "-";
@@ -69,7 +71,7 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
 
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
-
+    showImageThumbnailInTable();
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
@@ -167,9 +169,8 @@ void MainWindow::timoutLoadImageFile()
         labelFileInfos.push_back(labelFileInfo);
 
         // Set table items
-        // 1st column: name
+        // 1st column: thumbnail and name
         auto itemThumb = new QTableWidgetItem(baseName);
-        itemThumb->setData(Qt::DecorationRole, QPixmap(imgFileInfo.absoluteFilePath()).scaled(100, 100, Qt::KeepAspectRatio, Qt::SmoothTransformation));
         ui->tableWidgetImage->setItem(row, TABLE_IMG_COL_NAME, itemThumb);
         // 2nd column: object count
         OBJECTS objs;
@@ -185,13 +186,16 @@ void MainWindow::timoutLoadImageFile()
         timerImgLoad.stop();
         ui->progressBarImgLoad->hide();
 
-        // Open object class editor
-        objClassEditor->exec();
-
         // Set resize mode for image table column
         ui->tableWidgetImage->horizontalHeader()->setSectionResizeMode(TABLE_IMG_COL_NAME, QHeaderView::Stretch);
         ui->tableWidgetImage->horizontalHeader()->setSectionResizeMode(TABLE_IMG_COL_COUNT, QHeaderView::ResizeToContents);
         ui->tableWidgetImage->horizontalHeader()->setSectionResizeMode(TABLE_IMG_COL_REMOVE, QHeaderView::ResizeToContents);
+
+        // Open object class editor
+        objClassEditor->exec();
+
+        // Show thumbnail
+        showImageThumbnailInTable();
 
         // Select the first image
         if (ui->tableWidgetImage->rowCount() > 0) {
@@ -238,6 +242,22 @@ void MainWindow::loadObjectInfo(const QFileInfo &labelFileInfo, OBJECTS &objs)
 void MainWindow::initObjectTable(OBJECTS &)
 {
 
+}
+
+// Only show thumbnail images of visible items in the table
+void MainWindow::showImageThumbnailInTable()
+{
+    auto rowStart = ui->tableWidgetImage->rowAt(0);
+    auto rowEnd = ui->tableWidgetImage->rowAt(ui->tableWidgetImage->height());
+
+    if (rowStart >= 0 && rowEnd >= 0) {
+        for (int row = rowStart; row <= rowEnd; row++) {
+            if (ui->tableWidgetImage->item(row, TABLE_IMG_COL_NAME)->data(Qt::DecorationRole).isNull()) {
+                auto pix = QPixmap(imgFileInfos.at(row).absoluteFilePath()).scaled(100, 100, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                ui->tableWidgetImage->item(row, TABLE_IMG_COL_NAME)->setData(Qt::DecorationRole, pix);
+            }
+        }
+    }
 }
 
 // Remove selected image
