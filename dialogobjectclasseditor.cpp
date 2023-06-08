@@ -45,6 +45,32 @@ void DialogObjectClassEditor::getClassInformation(QStringList &classList, CLASS_
     }
 }
 
+const QStringList DialogObjectClassEditor::getClassList()
+{
+    QStringList list;
+
+    if (ui->tableWidget->rowCount() > 1) {
+        for (int row = 0; row < ui->tableWidget->rowCount() - 1; row++) {
+            list.push_back(ui->tableWidget->item(row, TABLE_COL_CLASS)->text());
+        }
+    }
+
+    return list;
+}
+
+const CLASS_COLORS DialogObjectClassEditor::getClassColors()
+{
+    CLASS_COLORS colors;
+
+    if (ui->tableWidget->rowCount() > 1) {
+        for (int row = 0; row < ui->tableWidget->rowCount() - 1; row++) {
+            colors.push_back(*(QColor *)(ui->tableWidget->cellWidget(row, TABLE_COL_COLOR)->property("COLOR").toLongLong()));
+        }
+    }
+
+    return colors;
+}
+
 QPushButton *DialogObjectClassEditor::getColorButton(int row)
 {
     auto btnColor = new QPushButton("");

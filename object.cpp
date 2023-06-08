@@ -1,11 +1,11 @@
 #include "object.h"
 
-object::object(int newClassNo, float &newPosX, float &newPosY, float &newWidth, float &newHeight, QObject *parent)
+object::object(int newClassNo, float &newCenterX, float &newCenterY, float &newWidth, float &newHeight, QObject *parent)
     : QObject{parent}
 {
     classNo = newClassNo;
-    posX = newPosX;
-    posY = newPosY;
+    centerX = newCenterX;
+    centerY = newCenterY;
     width = newWidth;
     height = newHeight;
 }
@@ -15,14 +15,14 @@ int object::getClassNo()
     return classNo;
 }
 
-float object::getPosX()
+float object::getCenterX()
 {
-    return posX;
+    return centerX;
 }
 
-float object::getPosY()
+float object::getCenterY()
 {
-    return posY;
+    return centerY;
 }
 
 float object::getWidth()
@@ -35,9 +35,9 @@ float object::getHeight()
     return height;
 }
 
-QPointF object::getPos()
+QPointF object::getCenterPos()
 {
-    return QPointF(posX, posY);
+    return QPointF(centerX, centerY);
 }
 
 QSizeF object::getSize()
@@ -47,7 +47,7 @@ QSizeF object::getSize()
 
 QRectF object::getRect()
 {
-    return QRectF(posX, posY, width, height);
+    return QRectF(centerX - width / 2.0f, centerY - height / 2.0f, width, height);
 }
 
 void object::setClassNo(int newClassNo)
@@ -55,14 +55,14 @@ void object::setClassNo(int newClassNo)
     classNo = newClassNo;
 }
 
-void object::setPosX(float newPosX)
+void object::setCenterX(float newCenterX)
 {
-    posX = newPosX;
+    centerX = newCenterX;
 }
 
-void object::setPosY(float newPosY)
+void object::setCenterY(float newCenterY)
 {
-    posY = newPosY;
+    centerY = newCenterY;
 }
 
 void object::setWidth(float newWidth)
@@ -75,10 +75,3 @@ void object::setHeight(float newHeight)
     height = newHeight;
 }
 
-void object::setRect(float newPosX, float newPosY, float newWidth, float newHeight)
-{
-    posX = newPosX;
-    posY = newPosY;
-    width = newWidth;
-    height = newHeight;
-}

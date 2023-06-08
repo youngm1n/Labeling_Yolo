@@ -49,7 +49,7 @@ private:
 
     QList<QPushButton *> btnRemoveImg;
 
-    ImageViewer *imgView;
+    ImageViewer *imgEditor;
     QTimer timerImgLoad;
 
     DialogObjectClassEditor *objClassEditor;

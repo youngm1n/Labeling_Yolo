@@ -22,6 +22,8 @@ public:
 
     void insertNewClassNo(const int &no);
     void getClassInformation(QStringList &classList, CLASS_COLORS &classColors);
+    const QStringList getClassList();
+    const CLASS_COLORS getClassColors();
 
 private:
     QPushButton *getColorButton(int row);

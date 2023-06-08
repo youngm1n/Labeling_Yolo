@@ -13,31 +13,29 @@ class object : public QObject
 {
     Q_OBJECT
 public:
-    explicit object(int classNo, float &posX, float &posY, float &width, float &height, QObject *parent = nullptr);
+    explicit object(int classNo, float &centerX, float &centerY, float &width, float &height, QObject *parent = nullptr);
 
     int getClassNo();
-    float getPosX();
-    float getPosY();
+    float getCenterX();
+    float getCenterY();
     float getWidth();
     float getHeight();
 
-    QPointF getPos();
+    QPointF getCenterPos();
     QSizeF getSize();
     QRectF getRect();
 
     void setClassNo(int newClassNo);
-    void setPosX(float newPosX);
-    void setPosY(float newPosY);
+    void setCenterX(float newPosX);
+    void setCenterY(float newPosY);
     void setWidth(float newWidth);
     void setHeight(float newHeight);
 
-    void setRect(float newPosX, float newPosY, float newWidth, float newHeight);
-
 private:
     int classNo;
-
-    float posX;
-    float posY;
+    
+    float centerX;
+    float centerY;
     float width;
     float height;
 

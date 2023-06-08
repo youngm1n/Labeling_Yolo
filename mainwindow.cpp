@@ -26,7 +26,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->widgetImageTable->hide();
 
     // Set image view widget
-    imgView = ui->widgetImageViewer;
+    imgEditor = ui->widgetImageViewer;
 
     // Class editor
     objClassEditor = new DialogObjectClassEditor(this);
@@ -39,11 +39,16 @@ MainWindow::MainWindow(QWidget *parent)
     ui->tableWidgetImage->setSelectionMode(QTableWidget::SingleSelection);
     ui->tableWidgetImage->setSelectionBehavior(QTableWidget::SelectRows);
     connect(ui->tableWidgetImage, &QTableWidget::itemPressed, this, &MainWindow::pressedImageTableItem);
+    connect(ui->tableWidgetImage, &QTableWidget::itemSelectionChanged, this, [this]() {
+        pressedImageTableItem(ui->tableWidgetImage->selectedItems().first());
+    });
 
     auto defaultHeight = ui->tableWidgetImage->verticalHeader()->defaultSectionSize() * 2;
     ui->tableWidgetImage->verticalHeader()->setDefaultSectionSize(defaultHeight);
     ui->tableWidgetImage->verticalHeader()->setIconSize(QSize(defaultHeight, defaultHeight));
-    connect(ui->tableWidgetImage->verticalScrollBar(), &QScrollBar::valueChanged, this, [this](int) { showImageThumbnailInTable(); });
+    connect(ui->tableWidgetImage->verticalScrollBar(), &QScrollBar::valueChanged, this, [this](int) {
+        showImageThumbnailInTable();
+    });
 
     // Init the object table
     headerLabel = QStringList() << "Object" << "X" << "Y" << "Width" << "Height" << "-";
@@ -193,6 +198,7 @@ void MainWindow::timoutLoadImageFile()
 
         // Open object class editor
         objClassEditor->exec();
+        imgEditor->setObjectClassInfomation(objClassEditor->getClassList(), objClassEditor->getClassColors());
 
         // Show thumbnail
         showImageThumbnailInTable();
@@ -244,7 +250,7 @@ void MainWindow::initObjectTable(OBJECTS &)
 
 }
 
-// Only show thumbnail images of visible items in the table
+// Only load thumbnails displayed in the table
 void MainWindow::showImageThumbnailInTable()
 {
     auto rowStart = ui->tableWidgetImage->rowAt(0);
@@ -317,8 +323,8 @@ void MainWindow::pressedImageTableItem(QTableWidgetItem *item)
         ui->tableWidgetLabel->setCellWidget(labelRow, TABLE_OBJ_COL_CLASS, combo);
 
         // 2nd ~ 5th column (x, y, w, h)
-        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_X, new QTableWidgetItem(QString().setNum(obj->getPosX())));
-        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_Y, new QTableWidgetItem(QString().setNum(obj->getPosY())));
+        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_X, new QTableWidgetItem(QString().setNum(obj->getCenterX())));
+        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_Y, new QTableWidgetItem(QString().setNum(obj->getCenterY())));
         ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_WIDTH, new QTableWidgetItem(QString().setNum(obj->getWidth())));
         ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_HEIGHT, new QTableWidgetItem(QString().setNum(obj->getHeight())));
         // Set text alignment
@@ -334,6 +340,9 @@ void MainWindow::pressedImageTableItem(QTableWidgetItem *item)
 
         labelRow++;
     }
+
+    // Display Image
+    imgEditor->loadImage(imgFileInfo.absoluteFilePath(), objs);
 }
 
 // Click object from label table
