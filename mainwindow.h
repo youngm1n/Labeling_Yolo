@@ -34,13 +34,14 @@ private slots:
     void pressedLabelTableItem(QTableWidgetItem *item);
     void changedObjectClass(int newClassNo);
     void updateClassInformation(QStringList classList, CLASS_COLORS classColors);
-    void updateObjects(OBJECTS objs);
+    void updateObjectsFromImageViewer(OBJECTS objs);
 
 private:
     void loadObjectInfo(const QFileInfo &labelFileInfo, OBJECTS &objs);
-    void initObjectTable(OBJECTS &objs);
     void insertNewObjIntoTable(object *obj, int tableRow);
     void showImageThumbnailInTable();
+    void saveLabelFile();
+    void updateChanges();
 
 private:
     Ui::MainWindow *ui;

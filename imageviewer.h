@@ -13,7 +13,8 @@ public:
     explicit ImageViewer(QWidget *parent = nullptr);
     
     void loadImage(QString imgPath, OBJECTS objs);
-    void setClassEditor(DialogObjectClassEditor *newClassEditor);
+    void changeClassNo(int objNo, int classNo);
+    void removeObject(int objNo);
 
 public slots:
     void updateClassInformation(QStringList classList, CLASS_COLORS classColors);
@@ -26,14 +27,13 @@ private slots:
     void createNewObject(int classNo);
 
 signals:
-    void updateObjects(OBJECTS objs);
+    void updateObjectsFromImageViewer(OBJECTS objs);
 
 private:
     QImage img;
     OBJECTS objs;
 
     // Object's class params
-    DialogObjectClassEditor *objClassEditor;
     QStringList objClassNames;
     CLASS_COLORS objClassColors;
 

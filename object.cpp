@@ -2,25 +2,23 @@
 
 #define RESIZER_RADIUS    7
 
-object::object(int newClassNo, QString newClassName, QColor newClassColor, float yoloCenterX, float yoloCenterY, float yoloWidth, float yoloHeight, QObject *parent)
+object::object(int newClassNo, float yoloCenterX, float yoloCenterY, float yoloWidth, float yoloHeight, QObject *parent)
     : QObject{parent}
 {
-    init(newClassNo, newClassName, newClassColor);
+    init(newClassNo);
     updateYoloRect(yoloCenterX, yoloCenterY, yoloWidth, yoloHeight);
 }
 
-object::object(int newClassNo, QString newClassName, QColor newClassColor, QRectF scrRect, QRectF rectDraw, QObject *parent)
+object::object(int newClassNo, QRectF scrRect, QRectF rectDraw, QObject *parent)
     : QObject{parent}
 {
-    init(newClassNo, newClassName, newClassColor);
+    init(newClassNo);
     updateYoloRect(scrRect, rectDraw);
 }
 
-void object::init(int newClassNo, QString newClassName, QColor newClassColor)
+void object::init(int newClassNo)
 {
     classNo = newClassNo;
-    className = newClassName;
-    classColor = newClassColor;
 
     for (int i = 0; i < RECT_CORNER_TOTAL; i++) {
         scrResizers.push_back(new QRectF(0, 0, RESIZER_RADIUS, RESIZER_RADIUS));
@@ -50,16 +48,6 @@ void object::setClassNo(int newClassNo)
 int object::getClassNo() const
 {
     return classNo;
-}
-
-QString object::getClassName() const
-{
-    return className;
-}
-
-QColor object::getClassColor() const
-{
-    return classColor;
 }
 
 RESIZERS object::getScrResizers() const

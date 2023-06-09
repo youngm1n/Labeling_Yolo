@@ -22,12 +22,6 @@ ImageViewer::ImageViewer(QWidget *parent)
     connect(newObjClassSelctor, &QComboBox::activated, this, &ImageViewer::createNewObject);
 }
 
-// Set class editor
-void ImageViewer::setClassEditor(DialogObjectClassEditor *newObjClassEditor)
-{
-    objClassEditor = newObjClassEditor;
-}
-
 // Update class lsit and colors list from editor
 void ImageViewer::updateClassInformation(QStringList list, CLASS_COLORS colors)
 {
@@ -67,6 +61,23 @@ void ImageViewer::loadImage(QString imgPath, OBJECTS newObjs)
     objs = newObjs;
     update();
 }
+
+void ImageViewer::changeClassNo(int objNo, int classNo)
+{
+    if (objNo < objs.count()) {
+        objs.at(objNo)->setClassNo(classNo);
+        update();
+    }
+}
+
+void ImageViewer::removeObject(int objNo)
+{
+    if (objNo < objs.count()) {
+        objs.remove(objNo);
+        update();
+    }
+}
+
 
 QRectF *ImageViewer::getScreenRectFromYoloRect(QRectF rectYolo)
 {
@@ -108,19 +119,13 @@ void ImageViewer::createNewObject(int classNo)
         rectNewObj.setBottom(temp);
     }
 
-    QString className;
-    QColor classColor;
-    if (classNo < objClassNames.count()) {
-        className = objClassNames.at(classNo);
-        classColor = objClassColors.at(classNo);
-    }
-    auto newObj = new object(classNo, className, classColor, rectNewObj, rectDraw);
+    auto newObj = new object(classNo, rectNewObj, rectDraw);
     objs.push_back(newObj);
 
     update();
 
     // update object for main window
-    emit updateObjects(objs);
+    emit updateObjectsFromImageViewer(objs);
 }
 
 bool ImageViewer::eventFilter(QObject *watched, QEvent *event)
@@ -154,7 +159,7 @@ bool ImageViewer::eventFilter(QObject *watched, QEvent *event)
 
             // Update resized screen obj to yolo style rect
             objs.at(selObjNo)->updateYoloRect(tempScrRect, rectDraw);
-            emit updateObjects(objs);
+            emit updateObjectsFromImageViewer(objs);
             cursorOn = true;
         }
         else {
@@ -252,7 +257,7 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event)
     }
 
     if (dragResizer) {
-        emit updateObjects(objs);
+        emit updateObjectsFromImageViewer(objs);
     }
 
     dragImg = dragResizer = false;
@@ -320,7 +325,7 @@ void ImageViewer::paintEvent(QPaintEvent *event)
     if (!newObj) {
         for (int objNo = 0; objNo < objs.count(); objNo++) {
             if (selObjNo == -1 || selObjNo == objNo) {
-                auto color = objs.at(objNo)->getClassColor();
+                auto color = objClassColors.at(objs.at(objNo)->getClassNo());
                 auto scrRect = objs.at(objNo)->getScrRect(rectDraw);
                 auto scrResizers = objs.at(objNo)->getScrResizers();
 

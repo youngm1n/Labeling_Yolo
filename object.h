@@ -16,18 +16,16 @@ class object : public QObject
 {
     Q_OBJECT
 public:
-    explicit object(int classNo, QString className, QColor classColor, float yoloCenterX, float yoloCenterY, float yoloWidth, float yoloHeight, QObject *parent = nullptr);
-    explicit object(int classNo, QString className, QColor classColor, QRectF scrRect, QRectF rectDraw, QObject *parent = nullptr);
+    explicit object(int classNo, float yoloCenterX, float yoloCenterY, float yoloWidth, float yoloHeight, QObject *parent = nullptr);
+    explicit object(int classNo, QRectF scrRect, QRectF rectDraw, QObject *parent = nullptr);
 
-    void init(int classNo, QString className, QColor classColor);
+    void init(int classNo);
 
     void updateYoloRect(float yoloCenterX, float yoloCenterY, float yoloWidth, float yoloHeight);
     void updateYoloRect(const QRectF &scrRect, const QRectF &rectDraw);
 
     void setClassNo(int newClassNo);
     int getClassNo() const;
-    QString getClassName() const;
-    QColor getClassColor() const;
 
     QRectF getYoloRect();
     QRectF getScrRect(const QRectF &rectDraw);
@@ -37,8 +35,6 @@ public:
 
 private:
     int classNo;
-    QString className;
-    QColor classColor;
     
     QRectF rectYolo;
     QRectF rectScr;
