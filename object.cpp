@@ -1,53 +1,45 @@
 #include "object.h"
 
-object::object(int newClassNo, float &newCenterX, float &newCenterY, float &newWidth, float &newHeight, QObject *parent)
+#define RESIZER_RADIUS    7
+
+object::object(int newClassNo, QString newClassName, QColor newClassColor, float yoloCenterX, float yoloCenterY, float yoloWidth, float yoloHeight, QObject *parent)
     : QObject{parent}
 {
+    init(newClassNo, newClassName, newClassColor);
+    updateYoloRect(yoloCenterX, yoloCenterY, yoloWidth, yoloHeight);
+}
+
+object::object(int newClassNo, QString newClassName, QColor newClassColor, QRectF scrRect, QRectF rectDraw, QObject *parent)
+    : QObject{parent}
+{
+    init(newClassNo, newClassName, newClassColor);
+    updateYoloRect(scrRect, rectDraw);
+}
+
+void object::init(int newClassNo, QString newClassName, QColor newClassColor)
+{
     classNo = newClassNo;
-    centerX = newCenterX;
-    centerY = newCenterY;
-    width = newWidth;
-    height = newHeight;
+    className = newClassName;
+    classColor = newClassColor;
+
+    for (int i = 0; i < RECT_CORNER_TOTAL; i++) {
+        scrResizers.push_back(new QRectF(0, 0, RESIZER_RADIUS, RESIZER_RADIUS));
+    }
 }
 
-int object::getClassNo()
+void object::updateYoloRect(float yoloCenterX, float yoloCenterY, float yoloWidth, float yoloHeight)
 {
-    return classNo;
+    rectYolo.setSize(QSizeF(yoloWidth, yoloHeight));
+    rectYolo.moveCenter(QPointF(yoloCenterX, yoloCenterY));
 }
 
-float object::getCenterX()
+void object::updateYoloRect(const QRectF &scrRect, const QRectF &rectDraw)
 {
-    return centerX;
-}
-
-float object::getCenterY()
-{
-    return centerY;
-}
-
-float object::getWidth()
-{
-    return width;
-}
-
-float object::getHeight()
-{
-    return height;
-}
-
-QPointF object::getCenterPos()
-{
-    return QPointF(centerX, centerY);
-}
-
-QSizeF object::getSize()
-{
-    return QSize(width, height);
-}
-
-QRectF object::getRect()
-{
-    return QRectF(centerX - width / 2.0f, centerY - height / 2.0f, width, height);
+    float x = (scrRect.left() - rectDraw.left()) / rectDraw.width();
+    float y = (scrRect.top() - rectDraw.top()) / rectDraw.height();
+    float w = scrRect.width() / rectDraw.width();
+    float h = scrRect.height() / rectDraw.height();
+    rectYolo.setRect(x, y, w, h);
 }
 
 void object::setClassNo(int newClassNo)
@@ -55,23 +47,54 @@ void object::setClassNo(int newClassNo)
     classNo = newClassNo;
 }
 
-void object::setCenterX(float newCenterX)
+int object::getClassNo() const
 {
-    centerX = newCenterX;
+    return classNo;
 }
 
-void object::setCenterY(float newCenterY)
+QString object::getClassName() const
 {
-    centerY = newCenterY;
+    return className;
 }
 
-void object::setWidth(float newWidth)
+QColor object::getClassColor() const
 {
-    width = newWidth;
+    return classColor;
 }
 
-void object::setHeight(float newHeight)
+RESIZERS object::getScrResizers() const
 {
-    height = newHeight;
+    return scrResizers;
 }
 
+int object::getSelectedResizerNo(const QPointF &pos)
+{
+    int no = RECT_CORNER_TOTAL;
+
+    for (int i = 0; i < scrResizers.count(); i++) {
+        if (scrResizers.at(i)->contains(pos)) {
+            no = i;
+            break;
+        }
+    }
+
+    return no;
+}
+
+QRectF object::getYoloRect()
+{
+    return rectYolo;
+}
+
+QRectF object::getScrRect(const QRectF &rectDraw)
+{
+    rectScr.setSize(QSizeF(rectYolo.width() * rectDraw.width(), rectYolo.height() * rectDraw.height()));
+    rectScr.moveTopLeft(QPointF(rectYolo.left() * rectDraw.width(), rectYolo.top() * rectDraw.height()) + rectDraw.topLeft());
+
+    scrResizers.at(RECT_TOP_LEFT)->moveCenter(rectScr.topLeft());
+    scrResizers.at(RECT_TOP_RIGHT)->moveCenter(rectScr.topRight());
+    scrResizers.at(RECT_BOTTOM_LEFT)->moveCenter(rectScr.bottomLeft());
+    scrResizers.at(RECT_BOTTOM_RIGHT)->moveCenter(rectScr.bottomRight());
+
+    return rectScr;
+}

@@ -225,15 +225,21 @@ void MainWindow::loadObjectInfo(const QFileInfo &labelFileInfo, OBJECTS &objs)
             QString line;
             QStringList data;
             int classNo = 0;
+            QString className;
+            QColor classColor;
             float x, y, w, h;
             while (stream.readLineInto(&line)) {
                 data = line.split(" ");
                 classNo = data.first().toInt();
+                if (classNo < objClassNames.count()) {
+                    className = objClassNames.at(classNo);
+                    classColor = objClassColors.at(classNo);
+                }
                 x = data.at(1).toFloat();
                 y = data.at(2).toFloat();
                 w = data.at(3).toFloat();
                 h = data.at(4).toFloat();
-                objs.push_back(new object(classNo, x, y, w, h));
+                objs.push_back(new object(classNo, className, classColor, x, y, w, h));
 
                 // Insert classNo into class list, if it is new
                 objClassEditor->insertNewClassNo(classNo);
@@ -305,25 +311,24 @@ void MainWindow::pressedImageTableItem(QTableWidgetItem *item)
         // 1st column: object's class (combobox)
         auto combo = new QComboBox;
         auto sizeComboIcon = combo->style()->pixelMetric(QStyle::PM_SmallIconSize);
-        for (int i = 0; i < objClassList.count(); i++) {
-            combo->addItem(objClassList.at(i));
+        for (int i = 0; i < objClassNames.count(); i++) {
+            combo->addItem(objClassNames.at(i));
 
             // Set color
             QPixmap pix(sizeComboIcon, sizeComboIcon);
             pix.fill(objClassColors.at(i));
             combo->setItemData(i, pix, Qt::DecorationRole);
         }
-        combo->addItem("Add new class...");
         combo->setCurrentIndex(obj->getClassNo());
         combo->setFocusPolicy(Qt::NoFocus);
         connect(combo, &QComboBox::currentIndexChanged, this, &MainWindow::changedObjectClass);
         ui->tableWidgetLabel->setCellWidget(labelRow, TABLE_OBJ_COL_CLASS, combo);
 
         // 2nd ~ 5th column (x, y, w, h)
-        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_X, new QTableWidgetItem(QString().setNum(obj->getCenterX())));
-        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_Y, new QTableWidgetItem(QString().setNum(obj->getCenterY())));
-        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_WIDTH, new QTableWidgetItem(QString().setNum(obj->getWidth())));
-        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_HEIGHT, new QTableWidgetItem(QString().setNum(obj->getHeight())));
+        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_X, new QTableWidgetItem(QString().setNum(obj->getYoloRect().center().x())));
+        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_Y, new QTableWidgetItem(QString().setNum(obj->getYoloRect().center().y())));
+        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_WIDTH, new QTableWidgetItem(QString().setNum(obj->getYoloRect().width())));
+        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_HEIGHT, new QTableWidgetItem(QString().setNum(obj->getYoloRect().height())));
         // Set text alignment
         for (int col = TABLE_OBJ_COL_X; col <= TABLE_OBJ_COL_HEIGHT; col++) {
             ui->tableWidgetLabel->item(labelRow, col)->setTextAlignment(Qt::AlignCenter);
@@ -355,6 +360,12 @@ void MainWindow::changedObjectClass(int newClassNo)
 
 void MainWindow::updateClassInformation(QStringList list, CLASS_COLORS colors)
 {
-    objClassList = list;
+    objClassNames = list;
     objClassColors = colors;
 }
+
+void MainWindow::updateObjects(OBJECTS objs)
+{
+    auto tableRow = ui->tableWidgetLabel->rowCount();
+}
+

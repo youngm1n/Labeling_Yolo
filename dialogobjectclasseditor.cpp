@@ -21,8 +21,9 @@ DialogObjectClassEditor::~DialogObjectClassEditor()
     delete ui;
 }
 
-int DialogObjectClassEditor::exec()
+void DialogObjectClassEditor::initTable()
 {
+    lastAddedClassNo = 0;
     ui->tableWidget->clearContents();
 
     auto countClass = objClassList.isEmpty() ? objClassSet.count() : objClassList.count();
@@ -49,7 +50,11 @@ int DialogObjectClassEditor::exec()
     ui->tableWidget->setItem(countClass, TABLE_COL_NO, new QTableWidgetItem(" "));
     ui->tableWidget->setItem(countClass, TABLE_COL_CLASS, new QTableWidgetItem("Add new class..."));
     connect(ui->tableWidget, &QTableWidget::itemChanged, this, &DialogObjectClassEditor::objectClassNameChanged);
+}
 
+int DialogObjectClassEditor::exec()
+{
+    initTable();
     return QDialog::exec();
 }
 
@@ -67,6 +72,11 @@ void DialogObjectClassEditor::insertNewClassNo(const int &no)
     if (objClassSet.find(no) == objClassSet.end()) {
         objClassSet.insert(no);
     }
+}
+
+int DialogObjectClassEditor::getLastAddedClassNo()
+{
+    return lastAddedClassNo;
 }
 
 QPushButton *DialogObjectClassEditor::getColorButton(int row)
@@ -116,6 +126,7 @@ void DialogObjectClassEditor::objectClassNameChanged(QTableWidgetItem *item)
                     ui->tableWidget->item(item->row(), TABLE_COL_NO)->setTextAlignment(Qt::AlignCenter);
                     ui->tableWidget->setCellWidget(item->row(), TABLE_COL_COLOR, getColorButton(item->row()));
                     ui->tableWidget->item(item->row(), TABLE_COL_NO)->setText(QString().setNum(item->row()));
+                    lastAddedClassNo = item->row();
                 }
             }
         }

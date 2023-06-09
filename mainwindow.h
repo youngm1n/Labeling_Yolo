@@ -34,10 +34,11 @@ private slots:
     void pressedLabelTableItem(QTableWidgetItem *item);
     void changedObjectClass(int newClassNo);
     void updateClassInformation(QStringList classList, CLASS_COLORS classColors);
+    void updateObjects(OBJECTS objs);
 
 private:
     void loadObjectInfo(const QFileInfo &labelFileInfo, OBJECTS &objs);
-    void initObjectTable(OBJECTS &);
+    void initObjectTable(OBJECTS &objs);
     void showImageThumbnailInTable();
 
 private:
@@ -54,7 +55,7 @@ private:
     QTimer timerImgLoad;
 
     DialogObjectClassEditor *objClassEditor;
-    QStringList objClassList;
+    QStringList objClassNames;
     CLASS_COLORS objClassColors;
 
     // QWidget interface

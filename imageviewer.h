@@ -12,9 +12,7 @@ class ImageViewer : public QWidget
 public:
     explicit ImageViewer(QWidget *parent = nullptr);
     
-    void loadImage(QString imgPath, OBJECTS &objs);
-    void updateObjects(OBJECTS &objs);
-
+    void loadImage(QString imgPath, OBJECTS objs);
     void setClassEditor(DialogObjectClassEditor *newClassEditor);
 
 public slots:
@@ -22,27 +20,22 @@ public slots:
 
 private:
     QRectF *getScreenRectFromYoloRect(QRectF rectYolo);
-    void updateObjectScreenRect();
     void moveDrawRectCenter(QPointF center);
 
 private slots:
     void createNewObject(int classNo);
 
 signals:
+    void updateObjects(OBJECTS objs);
 
 private:
     QImage img;
-
-    // Object draw params
-    QList<QRectF *> rectYoloObjs;
-    QList<QRectF *> rectScrObjs;
-    QList<QVector<QRectF *>> rectResizers;
+    OBJECTS objs;
 
     // Object's class params
     DialogObjectClassEditor *objClassEditor;
-    QStringList classList;
-    CLASS_COLORS classColors;
-    QList<int> objClass;
+    QStringList objClassNames;
+    CLASS_COLORS objClassColors;
 
     // Draw tools
     QPointF currentMousePos;

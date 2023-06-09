@@ -20,8 +20,11 @@ public:
 
     void clear();
     void insertNewClassNo(const int &no);
+    int getLastAddedClassNo();
 
 private:
+    void initTable();
+
     QPushButton *getColorButton(int row);
     QPushButton *getColorButton(int row, QColor color);
 
@@ -37,6 +40,7 @@ private:
     QSet<int> objClassSet;
     QStringList objClassList;
     CLASS_COLORS objClassColors;
+    int lastAddedClassNo;
 
     // QDialog interface
 public slots:
