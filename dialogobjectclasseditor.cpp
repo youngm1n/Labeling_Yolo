@@ -3,6 +3,10 @@
 
 #include <QRandomGenerator>
 #include <QColorDialog>
+#include <QFile>
+#include <QTextStream>
+
+#define OBJECT_LIST_FILE    "ObjectList.txt"
 
 enum ENUM_TABLE_COL { TABLE_COL_NO, TABLE_COL_COLOR, TABLE_COL_CLASS, TABLE_COL_TOTAL };
 
@@ -28,24 +32,38 @@ void DialogObjectClassEditor::initTable()
 
     auto countClass = objClassList.isEmpty() ? objClassSet.count() : objClassList.count();
 
+    // Load list file
+    QStringList objNamesFromFile;
+    QFile file(OBJECT_LIST_FILE);
+    if (file.open(QIODevice::ReadOnly)) {
+        QTextStream stream(&file);
+        objNamesFromFile = stream.readAll().split("\n", Qt::SkipEmptyParts);
+        file.close();
+    }
+
     // Init table
     disconnect(ui->tableWidget, &QTableWidget::itemChanged, this, &DialogObjectClassEditor::objectClassNameChanged);
     ui->tableWidget->setColumnCount(TABLE_COL_TOTAL);
     ui->tableWidget->setHorizontalHeaderLabels(QStringList() << "No" << "Color" << "Class name");
     ui->tableWidget->setRowCount(countClass);
+
+    // Insert item
     for (int row = 0; row < countClass; row++) {
         ui->tableWidget->setItem(row, TABLE_COL_NO, new QTableWidgetItem(QString().setNum(row)));
         ui->tableWidget->item(row, TABLE_COL_NO)->setTextAlignment(Qt::AlignCenter);
 
         if (objClassList.isEmpty()) {
             ui->tableWidget->setCellWidget(row, TABLE_COL_COLOR, getColorButton(row));
-            ui->tableWidget->setItem(row, TABLE_COL_CLASS, new QTableWidgetItem(QString("class_%1").arg(row)));
+            QString objName = row < objNamesFromFile.count() ? objNamesFromFile.at(row) : QString("object_%1").arg(row);
+            ui->tableWidget->setItem(row, TABLE_COL_CLASS, new QTableWidgetItem(objName));
         }
         else {
             ui->tableWidget->setCellWidget(row, TABLE_COL_COLOR, getColorButton(row, objClassColors.at(row)));
             ui->tableWidget->setItem(row, TABLE_COL_CLASS, new QTableWidgetItem(objClassList.at(row)));
         }
     }
+
+    // Insert new class maker
     ui->tableWidget->insertRow(countClass);
     ui->tableWidget->setItem(countClass, TABLE_COL_NO, new QTableWidgetItem(" "));
     ui->tableWidget->setItem(countClass, TABLE_COL_CLASS, new QTableWidgetItem("Add new class..."));
@@ -152,5 +170,15 @@ void DialogObjectClassEditor::closeEvent(QCloseEvent *event)
     }
 
     emit updateClassInformation(objClassList, objClassColors);
+
+    // Save list file
+    QFile file(OBJECT_LIST_FILE);
+    if (file.open(QIODevice::WriteOnly)) {
+        QTextStream stream(&file);
+        for (int i = 0; i < ui->tableWidget->rowCount() - 1; i++) {
+            stream << ui->tableWidget->item(i, TABLE_COL_CLASS)->text() << "\n";
+        }
+        file.close();
+    }
 }
 

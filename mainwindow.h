@@ -60,9 +60,11 @@ private:
     QStringList objClassNames;
     CLASS_COLORS objClassColors;
 
+    // QObject interface
+public:
+    bool eventFilter(QObject *watched, QEvent *event);
     // QWidget interface
 protected:
-    void keyReleaseEvent(QKeyEvent *event);
     void resizeEvent(QResizeEvent *event);
     void dragEnterEvent(QDragEnterEvent *event);
     void dropEvent(QDropEvent *event);

@@ -19,6 +19,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    selectedImgRow = -1;
+    qApp->installEventFilter(this);
+
     // Accept drag and drop on window
     setAcceptDrops(true);
 
@@ -38,8 +41,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->tableWidgetImage->setColumnCount(headerLabel.count());
     ui->tableWidgetImage->setHorizontalHeaderLabels(headerLabel);
     ui->tableWidgetImage->verticalHeader()->setDefaultAlignment(Qt::AlignCenter);
-    ui->tableWidgetImage->setSelectionMode(QTableWidget::SingleSelection);
-    ui->tableWidgetImage->setSelectionBehavior(QTableWidget::SelectRows);
     connect(ui->tableWidgetImage, &QTableWidget::itemPressed, this, &MainWindow::pressedImageTableItem);
     connect(ui->tableWidgetImage, &QTableWidget::itemSelectionChanged, this, [this]() {
         pressedImageTableItem(ui->tableWidgetImage->selectedItems().first());
@@ -53,7 +54,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     // Init the object table
-    headerLabel = QStringList() << "Object" << "X" << "Y" << "Width" << "Height" << "-";
+    headerLabel = QStringList() << "Name" << "X" << "Y" << "Width" << "Height" << "-";
     ui->tableWidgetLabel->setColumnCount(headerLabel.count());
     ui->tableWidgetLabel->setHorizontalHeaderLabels(headerLabel);
     ui->tableWidgetLabel->verticalHeader()->setDefaultAlignment(Qt::AlignCenter);
@@ -67,8 +68,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&timerImgLoad, &QTimer::timeout, this, &MainWindow::timoutLoadImageFile);
 
     // Auto save
-    ui->pushButtonLabelFileSave->hide();
     connect(ui->checkBoxAutoSave, &QAbstractButton::toggled, ui->pushButtonLabelFileSave, &QPushButton::setHidden);
+    connect(ui->pushButtonLabelFileSave, &QPushButton::pressed, this, &MainWindow::saveLabelFile);
 }
 
 MainWindow::~MainWindow()
@@ -76,14 +77,25 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::keyReleaseEvent(QKeyEvent *event)
-{
 
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::KeyRelease) {
+        if (reinterpret_cast<QKeyEvent *>(event)->keyCombination() == QKeyCombination(Qt::ControlModifier, Qt::Key_S)) {
+            saveLabelFile();
+            return true;
+        }
+    }
+    return QObject::eventFilter(watched, event);
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
+    Q_UNUSED(event);
     showImageThumbnailInTable();
+    if (selectedImgRow != -1) {
+        pressedImageTableItem(ui->tableWidgetImage->item(selectedImgRow, 0));
+    }
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
@@ -120,8 +132,6 @@ void MainWindow::loadImageFolder(QDir dirImage)
     objClassEditor->clear();
     selectedImgRow = -1;
     ui->progressBarImgLoad->setValue(0);
-    ui->tableWidgetImage->clearSelection();
-    ui->tableWidgetLabel->clearSelection();
 
     // Set image folder
     ui->lineEditImageFolderPath->setText(dirImage.absolutePath());
@@ -158,6 +168,7 @@ void MainWindow::loadImageFolder(QDir dirImage)
         auto btn = new QPushButton("Remove");
         ui->tableWidgetImage->setCellWidget(i, TABLE_IMG_COL_REMOVE, btn);
         btn->setProperty("TABLE_ROW", i);
+        btn->setFocusPolicy(Qt::NoFocus);
         connect(btn, &QPushButton::pressed, this, &MainWindow::pressedImageRemoveButton);
         btnRemoveImg.push_back(btn);
     }
@@ -213,6 +224,7 @@ void MainWindow::timoutLoadImageFile()
 
         // Select the first image
         if (ui->tableWidgetImage->rowCount() > 0) {
+            ui->tableWidgetImage->selectRow(0);
             pressedImageTableItem(ui->tableWidgetImage->item(0, 0));
         }
     }
@@ -234,16 +246,18 @@ void MainWindow::loadObjectInfo(const QFileInfo &labelFileInfo, OBJECTS &objs)
             float x, y, w, h;
             while (stream.readLineInto(&line)) {
                 if (!line.isEmpty()) {
-                    data = line.split(" ");
-                    classNo = data.first().toInt();
-                    x = data.at(1).toFloat();
-                    y = data.at(2).toFloat();
-                    w = data.at(3).toFloat();
-                    h = data.at(4).toFloat();
-                    objs.push_back(new object(classNo, x, y, w, h));
+                    data = line.split(QRegularExpression("\\s+"), Qt::KeepEmptyParts);
+                    if (data.count() >= 5) {
+                        classNo = data.first().toInt();
+                        x = data.at(1).toFloat();
+                        y = data.at(2).toFloat();
+                        w = data.at(3).toFloat();
+                        h = data.at(4).toFloat();
+                        objs.push_back(new object(classNo, x, y, w, h));
 
-                    // Insert classNo into class list, if it is new
-                    objClassEditor->insertNewClassNo(classNo);
+                        // Insert classNo into class list, if it is new
+                        objClassEditor->insertNewClassNo(classNo);
+                    }
                 }
             }
             labelFile.close();
@@ -276,7 +290,7 @@ void MainWindow::saveLabelFile()
     auto labelFileInfo = labelFileInfos.at(selectedImgRow);
 
     QFile file(labelFileInfo.absoluteFilePath());
-    if (file.open(QIODevice::ReadWrite)) {
+    if (file.open(QIODevice::WriteOnly)) {
         QTextStream stream(&file);
         for (int row = 0; row < ui->tableWidgetLabel->rowCount(); row++) {
             auto classNo = reinterpret_cast<QComboBox *>(ui->tableWidgetLabel->cellWidget(row, TABLE_OBJ_COL_CLASS))->currentIndex();
@@ -287,6 +301,7 @@ void MainWindow::saveLabelFile()
             stream << QString("%1 %2 %3 %4 %5\n").arg(classNo).arg(x).arg(y).arg(w).arg(h);
         }
         file.close();
+        qDebug() << "File saved";
     }
 }
 
@@ -326,6 +341,7 @@ void MainWindow::pressedImageTableItem(QTableWidgetItem *item)
     // Load object infomation from label file and init object table with this
     OBJECTS objs;
     loadObjectInfo(labelFileInfo, objs);
+    ui->tableWidgetImage->item(selectedImgRow, TABLE_IMG_COL_COUNT)->setText(QString().setNum(objs.count()));
 
     // Init label table
     auto labelRowCount = ui->tableWidgetLabel->rowCount();
@@ -422,6 +438,7 @@ void MainWindow::insertNewObjIntoTable(object *obj, int tableRow)
 
     // 6th column: remove
     auto btnRemove = new QPushButton("Remove");
+    btnRemove->setFocusPolicy(Qt::NoFocus);
     connect(btnRemove, &QPushButton::pressed, this, &MainWindow::pressedObjectRemoveButton);
     ui->tableWidgetLabel->setCellWidget(tableRow, TABLE_OBJ_COL_REMOVE, btnRemove);
 

@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QPainter>
 #include <QMouseEvent>
+#include <QKeyEvent>
 
 ImageViewer::ImageViewer(QWidget *parent)
     : QWidget{parent}

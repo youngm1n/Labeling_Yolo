@@ -11,13 +11,13 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Object class</string>
+   <string>Object Edit</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Object Class List</string>
+      <string>Object List</string>
      </property>
     </widget>
    </item>
