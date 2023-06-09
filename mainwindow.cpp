@@ -62,6 +62,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->tableWidgetLabel->setSelectionMode(QTableWidget::SingleSelection);
     ui->tableWidgetLabel->setSelectionBehavior(QTableWidget::SelectRows);
     connect(ui->tableWidgetLabel, &QTableWidget::itemPressed, this, &MainWindow::pressedLabelTableItem);
+    connect(imgEditor, &ImageViewer::updateObjects, this, &MainWindow::updateObjects);
 
     // Connect image file load timer
     connect(&timerImgLoad, &QTimer::timeout, this, &MainWindow::timoutLoadImageFile);
@@ -304,43 +305,11 @@ void MainWindow::pressedImageTableItem(QTableWidgetItem *item)
     for (int row = 0; row < labelRowCount; row++) {
         ui->tableWidgetLabel->removeRow(0);
     }
-    ui->tableWidgetLabel->setRowCount(objs.count());
+
     // Load each object and put into label table
     auto labelRow = 0;
     foreach (auto obj, objs) {
-        // 1st column: object's class (combobox)
-        auto combo = new QComboBox;
-        auto sizeComboIcon = combo->style()->pixelMetric(QStyle::PM_SmallIconSize);
-        for (int i = 0; i < objClassNames.count(); i++) {
-            combo->addItem(objClassNames.at(i));
-
-            // Set color
-            QPixmap pix(sizeComboIcon, sizeComboIcon);
-            pix.fill(objClassColors.at(i));
-            combo->setItemData(i, pix, Qt::DecorationRole);
-        }
-        combo->setCurrentIndex(obj->getClassNo());
-        combo->setFocusPolicy(Qt::NoFocus);
-        connect(combo, &QComboBox::currentIndexChanged, this, &MainWindow::changedObjectClass);
-        ui->tableWidgetLabel->setCellWidget(labelRow, TABLE_OBJ_COL_CLASS, combo);
-
-        // 2nd ~ 5th column (x, y, w, h)
-        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_X, new QTableWidgetItem(QString().setNum(obj->getYoloRect().center().x())));
-        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_Y, new QTableWidgetItem(QString().setNum(obj->getYoloRect().center().y())));
-        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_WIDTH, new QTableWidgetItem(QString().setNum(obj->getYoloRect().width())));
-        ui->tableWidgetLabel->setItem(labelRow, TABLE_OBJ_COL_HEIGHT, new QTableWidgetItem(QString().setNum(obj->getYoloRect().height())));
-        // Set text alignment
-        for (int col = TABLE_OBJ_COL_X; col <= TABLE_OBJ_COL_HEIGHT; col++) {
-            ui->tableWidgetLabel->item(labelRow, col)->setTextAlignment(Qt::AlignCenter);
-        }
-
-        // 6th column: remove
-        auto btnRemove = new QPushButton("Remove");
-        btnRemove->setProperty("TABLE_ROW", labelRow);
-        connect(btnRemove, &QPushButton::pressed, this, &MainWindow::pressedObjectRemoveButton);
-        ui->tableWidgetLabel->setCellWidget(labelRow, TABLE_OBJ_COL_REMOVE, btnRemove);
-
-        labelRow++;
+        insertNewObjIntoTable(obj, labelRow++);
     }
 
     // Display Image
@@ -366,6 +335,56 @@ void MainWindow::updateClassInformation(QStringList list, CLASS_COLORS colors)
 
 void MainWindow::updateObjects(OBJECTS objs)
 {
-    auto tableRow = ui->tableWidgetLabel->rowCount();
+    for (int objNo = 0; objNo < objs.count(); objNo++) {
+        // Update table
+        if (objNo < ui->tableWidgetLabel->rowCount()) {
+            auto classCombo = static_cast<QComboBox *>(ui->tableWidgetLabel->cellWidget(objNo, TABLE_OBJ_COL_CLASS));
+            classCombo->setCurrentIndex(objs.at(objNo)->getClassNo());
+            ui->tableWidgetLabel->item(objNo, TABLE_OBJ_COL_X)->setText(QString().setNum(objs.at(objNo)->getYoloRect().x()));
+            ui->tableWidgetLabel->item(objNo, TABLE_OBJ_COL_Y)->setText(QString().setNum(objs.at(objNo)->getYoloRect().y()));
+            ui->tableWidgetLabel->item(objNo, TABLE_OBJ_COL_WIDTH)->setText(QString().setNum(objs.at(objNo)->getYoloRect().width()));
+            ui->tableWidgetLabel->item(objNo, TABLE_OBJ_COL_HEIGHT)->setText(QString().setNum(objs.at(objNo)->getYoloRect().height()));
+        }
+        // Add new row into table
+        else {
+            insertNewObjIntoTable(objs.at(objNo), objNo);
+        }
+    }
 }
 
+void MainWindow::insertNewObjIntoTable(object *obj, int tableRow)
+{
+    ui->tableWidgetLabel->insertRow(tableRow);
+
+    // 1st column: object's class (combobox)
+    auto combo = new QComboBox;
+    auto sizeComboIcon = combo->style()->pixelMetric(QStyle::PM_SmallIconSize);
+    for (int i = 0; i < objClassNames.count(); i++) {
+        combo->addItem(objClassNames.at(i));
+
+        // Set color
+        QPixmap pix(sizeComboIcon, sizeComboIcon);
+        pix.fill(objClassColors.at(i));
+        combo->setItemData(i, pix, Qt::DecorationRole);
+    }
+    combo->setCurrentIndex(obj->getClassNo());
+    combo->setFocusPolicy(Qt::NoFocus);
+    connect(combo, &QComboBox::currentIndexChanged, this, &MainWindow::changedObjectClass);
+    ui->tableWidgetLabel->setCellWidget(tableRow, TABLE_OBJ_COL_CLASS, combo);
+
+    // 2nd ~ 5th column (x, y, w, h)
+    ui->tableWidgetLabel->setItem(tableRow, TABLE_OBJ_COL_X, new QTableWidgetItem(QString().setNum(obj->getYoloRect().center().x())));
+    ui->tableWidgetLabel->setItem(tableRow, TABLE_OBJ_COL_Y, new QTableWidgetItem(QString().setNum(obj->getYoloRect().center().y())));
+    ui->tableWidgetLabel->setItem(tableRow, TABLE_OBJ_COL_WIDTH, new QTableWidgetItem(QString().setNum(obj->getYoloRect().width())));
+    ui->tableWidgetLabel->setItem(tableRow, TABLE_OBJ_COL_HEIGHT, new QTableWidgetItem(QString().setNum(obj->getYoloRect().height())));
+    // Set text alignment
+    for (int col = TABLE_OBJ_COL_X; col <= TABLE_OBJ_COL_HEIGHT; col++) {
+        ui->tableWidgetLabel->item(tableRow, col)->setTextAlignment(Qt::AlignCenter);
+    }
+
+    // 6th column: remove
+    auto btnRemove = new QPushButton("Remove");
+    btnRemove->setProperty("TABLE_ROW", tableRow);
+    connect(btnRemove, &QPushButton::pressed, this, &MainWindow::pressedObjectRemoveButton);
+    ui->tableWidgetLabel->setCellWidget(tableRow, TABLE_OBJ_COL_REMOVE, btnRemove);
+}

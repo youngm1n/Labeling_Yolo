@@ -39,6 +39,7 @@ private slots:
 private:
     void loadObjectInfo(const QFileInfo &labelFileInfo, OBJECTS &objs);
     void initObjectTable(OBJECTS &objs);
+    void insertNewObjIntoTable(object *obj, int tableRow);
     void showImageThumbnailInTable();
 
 private:

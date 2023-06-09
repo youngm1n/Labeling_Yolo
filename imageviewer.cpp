@@ -154,7 +154,7 @@ bool ImageViewer::eventFilter(QObject *watched, QEvent *event)
 
             // Update resized screen obj to yolo style rect
             objs.at(selObjNo)->updateYoloRect(tempScrRect, rectDraw);
-
+            emit updateObjects(objs);
             cursorOn = true;
         }
         else {
@@ -252,7 +252,6 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent *event)
     }
 
     if (dragResizer) {
-        // update object for main window
         emit updateObjects(objs);
     }
 
