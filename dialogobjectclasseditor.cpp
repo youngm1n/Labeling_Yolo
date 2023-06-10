@@ -30,16 +30,19 @@ void DialogObjectClassEditor::initTable()
     lastAddedClassNo = 0;
     ui->tableWidget->clearContents();
 
-    auto countClass = objClassList.isEmpty() ? objClassSet.count() : objClassList.count();
-
     // Load list file
-    QStringList objNamesFromFile;
     QFile file(OBJECT_LIST_FILE);
     if (file.open(QIODevice::ReadOnly)) {
         QTextStream stream(&file);
-        objNamesFromFile = stream.readAll().split("\n", Qt::SkipEmptyParts);
+        objClassList = stream.readAll().split("\n", Qt::SkipEmptyParts);
         file.close();
     }
+    if (objClassSet.count() > objClassList.count()) {
+        for (int i = objClassList.count(); i < objClassSet.count(); i++) {
+            objClassList.push_back(QString("object_%1").arg(i));
+        }
+    }
+    auto countClass = objClassList.isEmpty() ? objClassSet.count() : objClassList.count();
 
     // Init table
     disconnect(ui->tableWidget, &QTableWidget::itemChanged, this, &DialogObjectClassEditor::objectClassNameChanged);
@@ -51,16 +54,8 @@ void DialogObjectClassEditor::initTable()
     for (int row = 0; row < countClass; row++) {
         ui->tableWidget->setItem(row, TABLE_COL_NO, new QTableWidgetItem(QString().setNum(row)));
         ui->tableWidget->item(row, TABLE_COL_NO)->setTextAlignment(Qt::AlignCenter);
-
-        if (objClassList.isEmpty()) {
-            ui->tableWidget->setCellWidget(row, TABLE_COL_COLOR, getColorButton(row));
-            QString objName = row < objNamesFromFile.count() ? objNamesFromFile.at(row) : QString("object_%1").arg(row);
-            ui->tableWidget->setItem(row, TABLE_COL_CLASS, new QTableWidgetItem(objName));
-        }
-        else {
-            ui->tableWidget->setCellWidget(row, TABLE_COL_COLOR, getColorButton(row, objClassColors.at(row)));
-            ui->tableWidget->setItem(row, TABLE_COL_CLASS, new QTableWidgetItem(objClassList.at(row)));
-        }
+        ui->tableWidget->setCellWidget(row, TABLE_COL_COLOR, getColorButton(row));
+        ui->tableWidget->setItem(row, TABLE_COL_CLASS, new QTableWidgetItem(objClassList.at(row)));
     }
 
     // Insert new class maker
@@ -105,7 +100,9 @@ QPushButton *DialogObjectClassEditor::getColorButton(int row)
     case 1:     color = QColor(Qt::blue);   break;
     case 2:     color = QColor(Qt::cyan);   break;
     case 3:     color = QColor(Qt::yellow); break;
-    default:    color = QColor(QRandomGenerator::global()->bounded(255), QRandomGenerator::global()->bounded(255), QRandomGenerator::global()->bounded(255));
+    default:    color = QColor(QRandomGenerator::global()->bounded(255),
+                       QRandomGenerator::global()->bounded(255),
+                       QRandomGenerator::global()->bounded(255));
     }
 
     return getColorButton(row, color);

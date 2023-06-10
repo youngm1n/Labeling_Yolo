@@ -100,7 +100,7 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 {
-    // Accept drag and drop for only "images" folder
+    // Accept drag and drop for only folder
     if (event->mimeData()->urls().count() == 1) {
         QFileInfo info(event->mimeData()->urls().first().toLocalFile());
         if (info.isDir()) {
@@ -363,6 +363,7 @@ void MainWindow::pressedImageTableItem(QTableWidgetItem *item)
 void MainWindow::pressedLabelTableItem(QTableWidgetItem *item)
 {
     auto objNo = item->row();
+    imgEditor->selectObject(objNo);
 }
 
 void MainWindow::updateClassInformation(QStringList list, CLASS_COLORS colors)

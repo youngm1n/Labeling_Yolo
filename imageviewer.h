@@ -13,6 +13,7 @@ public:
     explicit ImageViewer(QWidget *parent = nullptr);
     
     void loadImage(QString imgPath, OBJECTS objs);
+    void selectObject(int objNo);
     void changeClassNo(int objNo, int classNo);
     void removeObject(int objNo);
 

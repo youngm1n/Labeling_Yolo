@@ -63,6 +63,14 @@ void ImageViewer::loadImage(QString imgPath, OBJECTS newObjs)
     update();
 }
 
+void ImageViewer::selectObject(int objNo)
+{
+    if (objNo >= 0 && objNo < objs.count()) {
+        selObjNo = objNo;
+        update();
+    }
+}
+
 void ImageViewer::changeClassNo(int objNo, int classNo)
 {
     if (objNo < objs.count()) {
@@ -332,7 +340,7 @@ void ImageViewer::paintEvent(QPaintEvent *event)
 
                 QColor colorBrush(color);
                 colorBrush.setAlphaF(0.2f);
-                p.setBrush(objNo == selObjNo ? Qt::transparent : colorBrush);
+                p.setBrush((objNo == selObjNo && selResizerNo != -1) ? Qt::transparent : colorBrush);
                 p.setPen(QPen(color, 2, objNo == selObjNo ? Qt::DotLine : Qt::SolidLine));
 
                 // Draw bounding rect
