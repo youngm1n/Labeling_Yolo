@@ -6,6 +6,7 @@
 #include <QFileDialog>
 #include <QAbstractSlider>
 #include <QScrollBar>
+#include <QMessageBox>
 
 enum ENUM_TABLE_IMG_COL { TABLE_IMG_COL_NAME, TABLE_IMG_COL_COUNT, TABLE_IMG_COL_REMOVE, TABLE_IMG_COL_TOTAL };
 enum ENUM_TABLE_OBJ_COL { TABLE_OBJ_COL_CLASS,
@@ -167,7 +168,6 @@ void MainWindow::loadImageFolder(QDir dirImage)
     for (int i = 0; i < imgFileInfos.count(); i++) {
         auto btn = new QPushButton("Remove");
         ui->tableWidgetImage->setCellWidget(i, TABLE_IMG_COL_REMOVE, btn);
-        btn->setProperty("TABLE_ROW", i);
         btn->setFocusPolicy(Qt::NoFocus);
         connect(btn, &QPushButton::pressed, this, &MainWindow::pressedImageRemoveButton);
         btnRemoveImg.push_back(btn);
@@ -202,6 +202,8 @@ void MainWindow::timoutLoadImageFile()
         loadObjectInfo(labelFileInfo, objs);
         ui->tableWidgetImage->setItem(row, TABLE_IMG_COL_COUNT, new QTableWidgetItem(QString().setNum(objs.count())));
         ui->tableWidgetImage->item(row, TABLE_IMG_COL_COUNT)->setTextAlignment(Qt::AlignCenter);
+        // 3rd column: remove button
+        ui->tableWidgetImage->cellWidget(row, TABLE_IMG_COL_REMOVE)->setProperty("TABLE_ITEM", reinterpret_cast<quint64>(itemThumb));
 
         // Update loading progress bar
         ui->progressBarImgLoad->setValue((row + 1) / static_cast<float>(imgFileInfos.count()) * 100.0f + 0.5f);
@@ -308,7 +310,29 @@ void MainWindow::saveLabelFile()
 // Remove selected image
 void MainWindow::pressedImageRemoveButton()
 {
-//    auto row = sender()->property("TABLE_ROW").toInt();
+    auto row = reinterpret_cast<QTableWidgetItem *>(sender()->property("TABLE_ITEM").toULongLong())->row();
+
+    if (row < imgFileInfos.count()) {
+        auto imgFile = QFile(imgFileInfos.at(row).absoluteFilePath());
+        auto labelFile = QFile(labelFileInfos.at(row).absoluteFilePath());
+        auto answer = QMessageBox::question(this, "Remove file", "Do you want to remove files below ?\n\n" + imgFile.fileName() + "\n" + labelFile.fileName());
+        if (answer == QMessageBox::Yes) {
+            imgFileInfos.remove(row);
+            labelFileInfos.remove(row);
+            imgFile.remove();
+            labelFile.remove();
+
+            ui->tableWidgetImage->removeRow(row);
+
+            // Select new image, instead of removed
+            if (ui->tableWidgetImage->rowCount() > 0) {
+                if (row >= ui->tableWidgetImage->rowCount()) {
+                    row = ui->tableWidgetImage->rowCount() - 1;
+                }
+                pressedImageTableItem(ui->tableWidgetImage->item(row, 0));
+            }
+        }
+    }
 }
 
 // Remove selected object
