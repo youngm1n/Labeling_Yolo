@@ -4,6 +4,20 @@ This is an image labeling tool for Yolo to train.
 
 [Screencast from 06-10-2023 01:56:41 PM.webm](https://github.com/youngm1n/Labeling_Yolo/assets/135795086/9c607b23-b130-4f99-aefc-f6599ada4455)
 
+# Control
+|Keyboard|Action|
+|---|---|
+|`Down`| Next Image |
+|`Up`| Previous Image |
+|`Ctrl` + `s`| Save Label File |
+
+|Mouse|Action|
+|---|---|
+|`Wheel Up`| Zoom In|
+|`Wheel Down`| Zoom Out|
+|`Right Click` and `Move`| Move Image|
+|`Double Left Click` and `Move`| Making Bounding Box|
+
 # How to use
 1. Download release: [v1.0.0](https://github.com/youngm1n/Labeling_Yolo/releases/download/v1.0.1/Labeling_Yolo.tar.xz)(for Linux)
 2. Run Labeling_Yolo
@@ -21,3 +35,5 @@ This is an image labeling tool for Yolo to train.
 8. Make a bounding box by drag and drop, and select an object's type.
 
 ![SelectObject](https://github.com/youngm1n/Labeling_Yolo/assets/135795086/b523f47a-4a0a-45ad-8a4b-83707e1fd34e)
+
+9. Press the `Save` button on bottom right (Check `Auto Save` on top right, if you want automatic save)
